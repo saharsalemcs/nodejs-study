@@ -1,0 +1,74 @@
+#!/usr/bin/env node
+
+import { Command } from "commander";
+import fs from "fs";
+import inquirer from "inquirer";
+
+const program = new Command();
+const filePath = "./study-logs.json";
+const promptQuestions = [
+  {
+    type: "input",
+    name: "topic",
+    message: "Enter study topic name",
+  },
+  {
+    type: "input",
+    name: "hours",
+    message: "Enter study topic duration (hours)",
+    validate: (value) =>
+      (!isNaN(value) && Number(value) > 0) || "Enter a number greater than 0",
+  },
+];
+
+function readSessions() {
+  if (!fs.existsSync(filePath)) return [];
+  const fileContent = fs.readFileSync(filePath, "utf-8");
+  return JSON.parse(fileContent);
+}
+
+program
+  .name("study-log-cli")
+  .description("CLI to track and log daily study sessions")
+  .version("1.0.0");
+
+program
+  .command("add")
+  .alias("a")
+  .description("add a study session")
+  .action(async () => {
+    try {
+      const answers = await inquirer.prompt(promptQuestions);
+      console.log(answers); // { topic: 'nodejs', hours: '5' }
+
+      // لو الفايل موجود بالفعل اقرأ
+      const sessions = readSessions();
+      sessions.push(answers);
+
+      // احفظ في الفايل
+      fs.writeFileSync(filePath, JSON.stringify(sessions, null, 2), "utf-8");
+
+      console.log(`Added: ${answers.topic} (${answers.hours}h)`);
+    } catch (err) {
+      console.error("Something went wrong:", err.message);
+    }
+  });
+
+program
+  .command("list")
+  .alias("l")
+  .description("show all sessions")
+  .action(() => {
+    try {
+      const sessions = readSessions();
+      if (sessions.length === 0) {
+        console.log("No sessions yet. Run `add` first.");
+        return;
+      }
+      console.table(sessions);
+    } catch (err) {
+      console.error("Error reading sessions:", err.message);
+    }
+  });
+
+program.parse();
