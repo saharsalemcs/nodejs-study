@@ -1,18 +1,32 @@
 {
   "name": "study-log-cli",
-  "version": "1.0.0",
+  "version": "1.0.1",
   "description": "CLI tool to track and log daily study sessions",
-  "main": "index.js",
   "bin": {
     "study": "./index.js"
   },
+  "files": [
+    "index.js"
+  ],
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1"
   },
-  "keywords": [],
+  "keywords": [
+    "cli",
+    "study",
+    "tracker",
+    "productivity"
+  ],
   "author": "saharz",
-  "license": "ISC",
+  "license": "MIT",
   "type": "module",
+  "engines": {
+    "node": ">=20"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/saharsalemcs/nodejs-study.git"
+  },
   "dependencies": {
     "commander": "^15.0.0",
     "inquirer": "^14.2.3"

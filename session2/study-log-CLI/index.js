@@ -4,8 +4,13 @@ import { Command } from "commander";
 import fs from "fs";
 import inquirer from "inquirer";
 
+import os from "os";
+import path from "path";
+
+const dataDir = path.join(os.homedir(), ".study-log");
+const filePath = path.join(dataDir, "study-logs.json");
+
 const program = new Command();
-const filePath = "./study-logs.json";
 const promptQuestions = [
   {
     type: "input",
@@ -28,6 +33,7 @@ function readSessions() {
 }
 
 function saveSessions(sessions) {
+  fs.mkdirSync(dataDir, { recursive: true });
   fs.writeFileSync(filePath, JSON.stringify(sessions, null, 2), "utf-8");
 }
 
