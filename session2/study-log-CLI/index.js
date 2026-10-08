@@ -27,6 +27,10 @@ function readSessions() {
   return JSON.parse(fileContent);
 }
 
+function saveSessions(sessions) {
+  fs.writeFileSync(filePath, JSON.stringify(sessions, null, 2), "utf-8");
+}
+
 program
   .name("study-log-cli")
   .description("CLI to track and log daily study sessions")
@@ -46,7 +50,7 @@ program
       sessions.push(answers);
 
       // احفظ في الفايل
-      fs.writeFileSync(filePath, JSON.stringify(sessions, null, 2), "utf-8");
+      saveSessions(sessions);
 
       console.log(`Added: ${answers.topic} (${answers.hours}h)`);
     } catch (err) {
@@ -68,6 +72,75 @@ program
       console.table(sessions);
     } catch (err) {
       console.error("Error reading sessions:", err.message);
+    }
+  });
+
+// Delete session
+program
+  .command("remove")
+  .alias("rm")
+  .description("pick a session to delete")
+  .action(async () => {
+    try {
+      const sessions = await readSessions();
+      if (sessions.length === 0) {
+        console.log("No sessions to delete");
+        return;
+      }
+      const { index } = await inquirer
+        .prompt([
+          {
+            type: "select",
+            name: "index",
+            message: "Which session do you want to delete?",
+            choices: sessions.map((s, i) => ({
+              name: `${s.topic} (${s.hours}h)`,
+              value: i,
+            })),
+          },
+          {
+            type: "confirm",
+            name: "sure",
+            message: "Are you sure?",
+            default: false,
+          },
+        ])
+        .then((a) => {
+          console.log(a);
+          return a.sure ? a : { index: null };
+        });
+
+      if (index === null) {
+        console.log("Cancelled");
+        return;
+      }
+
+      sessions.splice(index, 1);
+      saveSessions(sessions);
+      console.log("Deleted");
+    } catch (err) {
+      console.error("Error: ", err.message);
+    }
+  });
+
+// Total Hours
+program
+  .command("total")
+  .alias("t")
+  .description("show total study hours")
+  .action(() => {
+    try {
+      const sessions = readSessions();
+
+      if (sessions.length === 0) {
+        console.log("No sessions yet. Run `add` first.");
+        return;
+      }
+
+      const total = sessions.reduce((sum, s) => sum + Number(s.hours), 0);
+      console.log(`Total: ${total} hours across ${sessions.length} sessions`);
+    } catch (err) {
+      console.error("Error calculating total:", err.message);
     }
   });
 
