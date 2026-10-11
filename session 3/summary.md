@@ -329,8 +329,6 @@ console.log("done");
 
 ## Macrotask Queue و Microtasks
 
-> الجزء ده بيتحط في `summary.md` بعد قسم **"Callback Phases"** (قسم 8)، لأنه بيربط كل اللي قبله ببعض.
-
 ### الفكرة
 
 **الـ Macrotask** (أو **Task**) هو أي callback بيتجدول عشان يتنفذ **في دور لاحق** من الـ Event Loop. وطابورهم هو اللي كنا بنسميه "Callback Queue" بالتبسيط.
