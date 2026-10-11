@@ -132,7 +132,7 @@ set UV_THREADPOOL_SIZE=8 && node app.js
 UV_THREADPOOL_SIZE=8 node app.js
 ```
 
-### تجربة تشوفي بيها الـ Thread Pool بعينك
+### تجربة Thread Pool
 
 ```js
 import crypto from "node:crypto";
@@ -226,8 +226,6 @@ console.log("2: end");
 
 الـ `setTimeout(fn, 100)` معناها "نفّذ **بعد 100ms على الأقل**"، مش "بالظبط عند 100ms". لو الـ loop مشغول بحاجة تانية، التنفيذ هيتأخر.
 
-## **ملاحظاتي من الفيديو:**
-
 ---
 
 ## 5. Call Stack
@@ -295,8 +293,6 @@ console.log("done");
 - استخدمي العمليات الـ **async** بدل الـ sync.
 - الحسابات التقيلة تتقسّم أو تتنقل لـ worker (من الـ docs: الـ Event Loop يفترض ينسّق الطلبات مش ينفذ الشغل التقيل بنفسه).
 
-## **ملاحظاتي من الفيديو:**
-
 ---
 
 ## 6. Callback Queue
@@ -322,9 +318,149 @@ console.log("done");
 
 يعني الأدق: هي **مجموعة طوابير**، وفي ترتيب بينها (هنشوفه في القسم 8).
 
-## **ملاحظاتي من الفيديو:**
+## **Notes:**
+
+سيرش على اخر نقطتين هنا
+
+> phases of event loop / callback pahses
+> https://nodejs.org/learn/asynchronous-work/event-loop-timers-and-nexttick
 
 ---
+
+## Macrotask Queue و Microtasks
+
+> الجزء ده بيتحط في `summary.md` بعد قسم **"Callback Phases"** (قسم 8)، لأنه بيربط كل اللي قبله ببعض.
+
+### الفكرة
+
+**الـ Macrotask** (أو **Task**) هو أي callback بيتجدول عشان يتنفذ **في دور لاحق** من الـ Event Loop. وطابورهم هو اللي كنا بنسميه "Callback Queue" بالتبسيط.
+
+في Node، الـ Macrotasks هي:
+
+| المصدر                                        | بيتنفذ في مرحلة |
+| --------------------------------------------- | --------------- |
+| `setTimeout` / `setInterval`                  | timers          |
+| callbacks الـ I/O (`fs.readFile`، طلبات HTTP) | poll            |
+| `setImmediate`                                | check           |
+| أحداث الإغلاق (`socket.on('close')`)          | close callbacks |
+
+> **تنبيه عن المصطلح:** كلمة "Macrotask" جاية من مواصفات المتصفح (HTML spec). الـ docs الرسمية بتاعة Node **مبتستخدمهاش**، وبتتكلم عن **الـ phases وطوابيرها**. فلما تسمعي "Macrotask Queue" في Node، افهميها: **مجموعة طوابير المراحل (timers / poll / check / close)**، مش طابور واحد.
+
+### المشكلة
+
+فيه callbacks **مينفعش تستنى** لحد ما الـ loop يلف لفة كاملة على كل المراحل. مثال: الـ `await` والـ `.then` لازم الكود اللي بعدهم يكمل بسرعة، ومينفعش يتأخر وراء timers أو I/O.
+
+### الحل: Microtasks
+
+في طوابير **أعلى أولوية** بتتنفذ **فور ما الـ Call Stack يفضى**، قبل ما الـ Event Loop يروح لأي Macrotask:
+
+| الطابور                                         | بيشمل                                                            |
+| ----------------------------------------------- | ---------------------------------------------------------------- |
+| **nextTick queue** (خاص بـ Node، وبيتنفذ الأول) | `process.nextTick()`                                             |
+| **Microtasks**                                  | الـ Promises (`.then` / `.catch` / `await`) و `queueMicrotask()` |
+
+### القاعدة الذهبية
+
+```
+┌──────────────────────────────────────────────┐
+│ 1. نفّذ Macrotask واحد (على الـ Call Stack)   │
+│ 2. الـ Stack فضى؟ → فضّي nextTick queue       │
+│ 3. فضّي الـ Microtasks (Promises) كلها        │
+│ 4. خد الـ Macrotask الجاي                    │
+│ 5. كرر                                       │
+└──────────────────────────────────────────────┘
+```
+
+الـ Microtasks بتتفضّى **بالكامل** بين كل Macrotask والتاني.
+
+### مثال
+
+```js
+setTimeout(() => {
+  console.log("timeout 1");
+  Promise.resolve().then(() => console.log("promise inside timeout 1"));
+}, 0);
+
+setTimeout(() => console.log("timeout 2"), 0);
+```
+
+الناتج:
+
+```
+timeout 1
+promise inside timeout 1    ← اتنفذ قبل timeout 2!
+timeout 2
+```
+
+الـ `timeout 1` و`timeout 2` الاتنين **Macrotasks**. لكن الـ promise اللي اتعمل جوه `timeout 1` **Microtask**، فبياخد أولوية ويتنفذ **قبل** الـ Macrotask الجاي.
+
+### الربط بالمواضيع اللي اتشرحت
+
+**1) مع الـ Call Stack:** كل Macrotask بيتحط على الـ stack وبيتنفذ لحد ما الـ stack يفضى. لو طوّل، الباقي كله بيستنى (نفس تجربة الـ `while` loop).
+
+**2) مع الـ Thread Pool والـ Kernel:** دول اللي **بيشتغلوا في الخلفية**. لما يخلصوا، النتيجة بتتحول لـ **Macrotask جاهز** (callback بيتحط في طابور مرحلة poll). يعني هما **مصدر** الـ Macrotasks، مش بينفذوها بنفسهم.
+
+```
+fs.readFile  →  Thread Pool يقرا  →  يخلص  →  Macrotask في poll queue
+HTTP request →  Kernel يراقب      →  وصل   →  Macrotask في poll queue
+```
+
+**3) مع الـ Event Loop والـ Phases:** الـ Event Loop بيمر على طوابير الـ Macrotasks مرحلة بمرحلة (timers ← poll ← check ← close)، وبين كل Macrotask بيفضّي الـ nextTick والـ Microtasks.
+
+**4) مع الـ HTTP Server:** كل طلب جاي = **Macrotask** (الـ callback بتاع `createServer`). ولو جواه `await` أو `.then`، الكود اللي بعده بيتحول لـ **Microtask**:
+
+```js
+http.createServer(async (req, res) => {
+  // ← ده Macrotask (طلب جديد)
+  const data = await somePromise();
+  // ← من هنا Microtask (بعد ما الـ promise يخلص)
+  res.end("done");
+});
+```
+
+### الخطر: تجويع الـ Macrotasks (Starvation)
+
+زي ما الـ `nextTick` الـ recursive بيجوّع الـ I/O (من الـ docs)، **الـ Promises الـ recursive كمان**. لو كل microtask بيعمل microtask تاني، الطابور مبيفضاش أبدًا، فالـ Event Loop **مش هيوصل لأي Macrotask** (لا timer ولا طلب HTTP):
+
+```js
+function starve() {
+  Promise.resolve().then(starve); // ⚠️ السيرفر هيتجمد
+}
+starve();
+```
+
+### تجربة بتجمّع كل حاجة
+
+```js
+console.log("1: sync"); // Call Stack
+
+setTimeout(() => console.log("5: timeout"), 0); // Macrotask (timers)
+setImmediate(() => console.log("6: immediate")); // Macrotask (check)
+Promise.resolve().then(() => console.log("4: promise")); // Microtask
+process.nextTick(() => console.log("3: nextTick")); // nextTick queue
+
+console.log("2: sync"); // Call Stack
+```
+
+الترتيب المنطقي: **sync ← nextTick ← Promise ← Macrotasks**.
+
+> **جربيه بنفسك:** في ES Modules (اللي بتستخدميها) الترتيب بين `nextTick` والـ promise ممكن يتعكس، لأن الملف نفسه بيتنفذ جوه promise. وكمان `timeout` و`immediate` في الملف الرئيسي ترتيبهم مش مضمون. سجلي الناتج الفعلي عندك.
+
+### ملخص في سطر
+
+> **Macrotask** = callback بيستنى دوره في طابور مرحلة. **Microtask** = callback بيتنفذ فورًا بعد الـ Macrotask الحالي وقبل اللي بعده.
+
+### جدول المقارنة
+
+|                 | Macrotask                                   | Microtask                                             |
+| --------------- | ------------------------------------------- | ----------------------------------------------------- |
+| **أمثلة**       | `setTimeout`, `setImmediate`, I/O callbacks | Promises, `queueMicrotask`, (`nextTick` بأولوية أعلى) |
+| **بيتنفذ إمتى** | في مرحلته من الـ Event Loop                 | فور ما الـ Call Stack يفضى                            |
+| **الأولوية**    | أقل                                         | أعلى                                                  |
+| **بيتفضّى**     | واحد واحد (عبر المراحل)                     | كله مرة واحدة بين كل Macrotask                        |
+| **خطر**         | callback طويل بيوقف الباقي                  | recursion بيجوّع الـ Macrotasks                       |
+
+## ![alt text](image.png)
 
 ## 7. Call Stack و Callback Queue مع بعض
 
@@ -371,8 +507,6 @@ console.log("D");
 ### المهم تفهميه
 
 **ترتيب الكتابة في الكود ≠ ترتيب التنفيذ.** أي حاجة async بتتأجل لحد ما الكود المتزامن (sync) كله يخلص.
-
-## **ملاحظاتي من الفيديو:**
 
 ---
 
@@ -503,8 +637,6 @@ function starve() {
 ### ليه nextTick موجودة أصلًا؟ (من الـ docs)
 
 عشان تخلي الـ API **async دايمًا** حتى لو مش لازم، فتدي المستخدم فرصة يكمل كوده الأول (مثلًا يسجل `.on('listening')`) قبل ما الحدث يتبعت.
-
-## **ملاحظاتي من الفيديو:**
 
 ---
 
@@ -662,21 +794,7 @@ server.listen(3000);
 
 ---
 
-## حاجات مش فاهماها
-
--
-
-## تطبيق من دماغي
-
-- [ ] شغلي تجربة `pbkdf2` وغيري `UV_THREADPOOL_SIZE` (مثلًا 1 و4 و8) وسجلي النتايج.
-- [ ] شغلي مثال ترتيب `nextTick` / `Promise` / `setTimeout` / `setImmediate` وسجلي الناتج الفعلي عندك.
-- [ ] اعملي HTTP server فيه 3 routes (`/`, `/api/hello`, و 404) وجربيه بالمتصفح.
-- [ ] اعملي route فيه `while` loop واتأكدي إنه بيوقف باقي الـ routes، وبعدين غيريه لحاجة async وشوفي الفرق.
-- [ ] ابعتي ملف كبير من الـ server بـ `createReadStream().pipe(res)`.
-
----
-
-## المصادر (الـ Documentation)
+## الـ Documentation
 
 - [The Node.js Event Loop, Timers, and process.nextTick()](https://nodejs.org/learn/asynchronous-work/event-loop-timers-and-nexttick)
 - [Don't Block the Event Loop (or the Worker Pool)](https://nodejs.org/learn/asynchronous-work/dont-block-the-event-loop)
