@@ -131,12 +131,9 @@ app.listen(PORT, () => {
 
 ### ⚠️ ملاحظات على Express 5
 
-- بيحتاج Node 18 أو أحدث (وإنتي على نسخة أحدث بكتير).
 - `req.body` بيكون **`undefined`** لو مفيش middleware بيقراه (هنشوفها في قسم الـ Middlewares).
 - بيتعامل مع الـ **async errors** تلقائيًا (هنشوفها في قسم الـ Error Handling).
 - بيستخدم **path-to-regexp v8** في الـ routing، وده غير بعض الصيغ القديمة (هنشوفها في قسم الـ Routing).
-
-## **ملاحظاتي من الفيديو:**
 
 ---
 
@@ -525,8 +522,6 @@ curl -X POST http://localhost:3000/todos -H "Content-Type: application/json" -d 
 
 > **ليه `return` قبل `res.status(404)...`؟** عشان الدالة تقف هناك، ومتكملش وتبعت رد تاني (هيطلع error `Cannot set headers after they are sent`).
 
-## **ملاحظاتي من الفيديو:**
-
 ---
 
 ## 3. Middlewares
@@ -865,8 +860,6 @@ app.use((err, req, res, next) => {
 - لو middleware فيه `while` loop أو حسابات تقيلة أو `readFileSync` كبير، **كل المستخدمين هيستنوا** (نفس تجربة الـ `/block` اللي عملناها).
 - استخدمي دايمًا العمليات الـ **async** (`fs/promises`، `await`) جوه الـ middleware والـ handlers.
 - لما بتعملي `await` في handler، الكود اللي بعده بيتحول لـ **Microtask**، والـ Event Loop حر يخدم طلبات تانية في الوقت ده.
-
-## **ملاحظاتي من الفيديو:**
 
 ---
 
