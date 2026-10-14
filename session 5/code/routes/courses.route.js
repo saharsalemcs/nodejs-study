@@ -1,7 +1,8 @@
 const express = require("express");
+const courseControllers = require("../controllers/courses.controller");
+const { validationSchema } = require("../middleware/validationSchema");
 
 const router = express.Router();
-const courseControllers = require("../controllers/courses.controller");
 
 router
   .route("/")
@@ -13,3 +14,5 @@ router
   .get(courseControllers.getCourse)
   .patch(courseControllers.updateCourse)
   .delete(courseControllers.deleteCourse);
+
+module.exports = router;

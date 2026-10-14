@@ -6,10 +6,8 @@ const validationSchema = function () {
       .notEmpty()
       .withMessage("title not provided")
       .isLength({ min: 2 })
-      .withMessage("title should be at least 2 characters")
-      .body("price")
-      .notEmpty()
-      .withMessage("price not provided"),
+      .withMessage("title should be at least 2 characters"),
+    body("price").notEmpty().withMessage("price not provided"),
   ];
 };
 

@@ -17,7 +17,7 @@ const getCourse = (req, res) => {
 const createCourse = (req, res) => {
   // console.log(req.body);
   const result = validationResult(req);
-  if (!result.Empty()) {
+  if (!result.isEmpty()) {
     return res.status(400).json(result.array());
   }
   const course = { id: courses.length + 1, ...req.body };
