@@ -1,10 +1,13 @@
+require("dotenv").config();
+
 const express = require("express");
 const coursesRouter = require("./routes/courses.route");
 const { mongoose } = require("mongoose");
 
 const app = express();
-const url =
-  "mongodb+srv://saharsalemdev_db_user:xgy3YIyIWjiCQYCQ@cluster0.3ma3qkg.mongodb.net/learn-nodejs";
+
+const password = process.env.MONGODB_PASSWORD;
+const url = `mongodb+srv://saharsalemdev_db_user:${password}@cluster0.3ma3qkg.mongodb.net/learn-nodejs`;
 
 mongoose.connect(url).then(() => {
   console.log("mongodb server started");
