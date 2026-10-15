@@ -1,4 +1,5 @@
 require("dotenv").config();
+const cors = require("cors");
 const httpStatusText = require("./utils/httpStatusText");
 
 const express = require("express");
@@ -14,6 +15,7 @@ mongoose.connect(url).then(() => {
   console.log("mongodb server started");
 });
 
+app.use(cors());
 app.use(express.json());
 
 // rout handler
