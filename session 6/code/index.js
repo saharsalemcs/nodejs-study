@@ -1,4 +1,5 @@
 require("dotenv").config();
+const httpStatusText = require("./utils/httpStatusText");
 
 const express = require("express");
 const coursesRouter = require("./routes/courses.route");
@@ -17,6 +18,13 @@ app.use(express.json());
 
 // rout handler
 app.use("/api/courses", coursesRouter);
+
+app.all("/*splat", (req, res, next) => {
+  return res.status(404).json({
+    status: httpStatusText.ERROR,
+    message: "this resource is not available",
+  });
+});
 
 app.listen("5000", () => {
   console.log("server is running on port 5000");
