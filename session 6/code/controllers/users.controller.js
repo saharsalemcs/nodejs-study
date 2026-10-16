@@ -13,7 +13,11 @@ const getUsers = async (req, res) => {
   res.json({ status: httpStatusText.SUCCESS, data: { users } });
 };
 
-const register = async () => {};
+const register = async (req, res) => {
+  console.log(req.body);
+  const { firstName, lastName, email, password } = req.body;
+};
+
 const login = async () => {};
 
 module.exports = {

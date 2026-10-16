@@ -30,6 +30,15 @@ app.all("/*splat", (req, res, next) => {
   });
 });
 
+// Global error handler
+app.use((err, req, res, next) => {
+  res.status(err.statusCode || 400).json({
+    status: err.statusText || httpStatusText.ERROR,
+    message: err.message,
+    data: null,
+  });
+});
+
 app.listen("5000", () => {
   console.log("server is running on port 5000");
 });
