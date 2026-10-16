@@ -4,6 +4,7 @@ const httpStatusText = require("./utils/httpStatusText");
 
 const express = require("express");
 const coursesRouter = require("./routes/courses.route");
+const usersRouter = require("./routes/users.route");
 const { mongoose } = require("mongoose");
 
 const app = express();
@@ -20,6 +21,7 @@ app.use(express.json());
 
 // rout handler
 app.use("/api/courses", coursesRouter);
+app.use("/api/users", usersRouter);
 
 app.all("/*splat", (req, res, next) => {
   return res.status(404).json({
