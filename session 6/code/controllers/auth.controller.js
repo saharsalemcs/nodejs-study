@@ -14,7 +14,7 @@ const register = asyncWrapper(async (req, res, next) => {
     const error = appError.create(result.array(), 400, httpStatusText.FAIL);
     return next(error);
   }
-  const { firstName, lastName, email, password } = req.body;
+  const { firstName, lastName, email, password, role } = req.body;
 
   // check for duplicate users
   const existedUser = await User.findOne({ email: email });
@@ -35,10 +35,15 @@ const register = asyncWrapper(async (req, res, next) => {
     lastName,
     email,
     password: hashedPassword,
+    role,
   });
 
   // generate JWT => jwt.sing(payload , secretKey)
-  const token = await generateJWT({ email: newUser.email, id: newUser._id });
+  const token = await generateJWT({
+    email: newUser.email,
+    id: newUser._id,
+    role: newUser.role,
+  });
   newUser.token = token;
 
   await newUser.save();
@@ -78,7 +83,11 @@ const login = asyncWrapper(async (req, res, next) => {
   }
 
   // logged in successfully
-  const token = await generateJWT({ email: user.email, id: user._id });
+  const token = await generateJWT({
+    email: user.email,
+    id: user._id,
+    role: user.role,
+  });
   res.json({ status: httpStatusText.SUCCESS, data: { token } });
 });
 
