@@ -35,6 +35,7 @@ app.use((err, req, res, next) => {
   res.status(err.statusCode || 400).json({
     status: err.statusText || httpStatusText.ERROR,
     message: err.message,
+    code: err.statusCode,
     data: null,
   });
 });
