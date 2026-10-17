@@ -6,8 +6,12 @@ const express = require("express");
 const coursesRouter = require("./routes/courses.route");
 const usersRouter = require("./routes/users.route");
 const { mongoose } = require("mongoose");
+const path = require("node:path");
 
 const app = express();
+
+// handle profile image upload
+app.use("/uploads", express.static(path.join(__dirname, "uploads")));
 
 const password = process.env.MONGODB_PASSWORD;
 const url = `mongodb+srv://saharsalemdev_db_user:${password}@cluster0.3ma3qkg.mongodb.net/learn-nodejs`;

@@ -15,6 +15,7 @@ const register = asyncWrapper(async (req, res, next) => {
     return next(error);
   }
   const { firstName, lastName, email, password, role } = req.body;
+  console.log("req.file ->", req.file);
 
   // check for duplicate users
   const existedUser = await User.findOne({ email: email });
@@ -36,6 +37,7 @@ const register = asyncWrapper(async (req, res, next) => {
     email,
     password: hashedPassword,
     role,
+    avatar: req.file.filename,
   });
 
   // generate JWT => jwt.sing(payload , secretKey)
